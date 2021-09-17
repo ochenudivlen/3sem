@@ -18,15 +18,16 @@ int main()
 
 void GenerateString (int n, char* string)
 {
-    int val = 1; 
-    char* more_string;
+    int   val = 1; 
+    char  more_string;
     char* temp_string;
+    temp_string = (char*)calloc(1, sizeof (char));
 
-    strcpy (more_string, "a"); 
+    more_string = 'a'; 
 
-    printf ("%s\n", more_string);
+    printf ("%c\n", more_string);
 
-    temp_string = more_string;
+    temp_string[0] = more_string;
     more_string = more_string + 1;
     val = (val * 2) + 1;
  
@@ -35,7 +36,7 @@ void GenerateString (int n, char* string)
         string = (char*)calloc(val, sizeof (char));
 
         strcpy (string, temp_string);
-        strcat (string, more_string);
+        string[strlen(string)] = more_string;
         strcat (string, temp_string);
 
         more_string = more_string + 1;
