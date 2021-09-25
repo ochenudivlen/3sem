@@ -2,8 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-int const MAX_NUMBER_OF_SYMBOLS = 100;
-int const MAX_NUMBER_OF_WORDS   = 100;
+int const MAX_NUMBER_OF_SYMBOLS = 2000;
 
 void Split (char* string, char* delimiters, char*** tokens, int* tokensCount);
 
@@ -36,15 +35,14 @@ void Split (char* string, char* delimiters, char*** tokens, int* tokensCount)
     if (str == NULL)
     {
         printf ("Can't split string\n");
-        exit(0);
+        return;
     }
-
-    *tokens = (char**)calloc(MAX_NUMBER_OF_WORDS, sizeof (char*));
 
     while (str != NULL)
     {
-        *tokensCount++;
-        *tokens [*tokensCount - 1] = str;
+        (*tokensCount)++;
+        *tokens = (char**)realloc(*tokens, *tokensCount * sizeof (char*));
+        (*tokens) [*tokensCount - 1] = str;
         str = strtok (NULL, delimiters);
     }
 }
