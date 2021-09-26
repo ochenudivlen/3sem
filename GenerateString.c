@@ -46,3 +46,5 @@ void GenerateString (int n, char* string)
         printf ("%s\n", string);
     }
 }
+
+// TODO: на каждый вызов malloc/calloc должен быть вызов free, который освободит эту память 
