@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 
-int main()
+int main ()
 {
     int n = 0;
 
@@ -15,7 +15,7 @@ int main()
     {
         pid_t pid = fork();
 
-        if (pid == -1)
+        if (pid < 0)
         {
             printf ("Can\'t fork child\n");
             exit (-1);
