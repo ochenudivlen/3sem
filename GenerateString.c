@@ -36,7 +36,7 @@ void GenerateString (int n, char* string)
         string = (char*)calloc(val, sizeof (char));
 
         strcpy (string, temp_string);
-        string[strlen(string)] = more_string;
+        string [strlen(string)] = more_string;
         strcat (string, temp_string);
 
         more_string = more_string + 1;
@@ -45,6 +45,6 @@ void GenerateString (int n, char* string)
 
         printf ("%s\n", string);
     }
-}
 
-// TODO: на каждый вызов malloc/calloc должен быть вызов free, который освободит эту память 
+    free (string);
+}
