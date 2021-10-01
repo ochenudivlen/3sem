@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 
 int main ()
 {
@@ -23,6 +24,7 @@ int main ()
 
     if (pid > 0)
     {
+        wait (NULL);
         execlp ("./myprog", "./myprog", NULL);
     }
 
