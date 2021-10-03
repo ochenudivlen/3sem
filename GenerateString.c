@@ -48,3 +48,5 @@ void GenerateString (int n, char* string)
 
     free (string);
 }
+
+// TODO: вы позвали calloc n+1 раз, а free только 1 раз
