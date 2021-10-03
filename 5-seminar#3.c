@@ -3,6 +3,10 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <signal.h>
+#include <time.h>
 
 int const n  = 100;  //Примем 100 за максимальное количество символов в строке
 int const n1 = 10;   //Предполагается, что в первой строке находится число с не более чем десятью знаками
@@ -50,32 +54,51 @@ int main ()
     char**  tokens       = NULL;
     int     tokensCount  = 0;
 
-    Split (strings[0], delimiters, &tokens, &tokensCount);
+    for (int i = 0; i < number_of_string; i++)
+    {
+        Split (strings[i], delimiters, &tokens, &tokensCount);
 
-    char* str_temp = tokens[0];
+        tokens = (char**)realloc(tokens, (tokensCount + 1) * sizeof (char*));
+        tokens [tokensCount] = NULL;
 
-    for (int i = 0; i < tokensCount - 1; i++)
-        tokens[i] = tokens[i + 1];
+        struct timespec mt1, mt2;
+        double time = 0;
 
-    tokens [tokensCount - 1] = NULL;
+        pid_t pid = fork();
 
-    execvp (str_temp, tokens);
+        if (pid < 0)
+        {
+            printf ("Can\'t fork child\n");
+            exit (-1);
+        }
+        else if (pid == 0)
+        {
+            sleep (3);
 
-//    execlp (tokens[0], tokens[0], tokens[1], NULL);
+            execvp (tokens[0], tokens);
 
-//    printf ("%s-\n", tokens[0]);
-//    printf ("%d\n", number_of_string);
-//    while (num != 0)
-//    {
-//       write (1, str, num);
-//        printf ("\n");
-//        num = read (fp, str, N);
-//    }
-//    execlp ("ls", "ls", "-al", NULL);
+            exit (0);
+        }
+        else
+        {
+            clock_gettime (CLOCK_REALTIME, &mt1);
+
+            wait (NULL);
+
+            clock_gettime (CLOCK_REALTIME, &mt2);
+
+            time = (mt2.tv_sec - mt1.tv_sec) + ((double)(mt2.tv_nsec - mt1.tv_nsec)) / 1000000000;
+            printf ("Time: %.9lf\n", time);
+
+        }
+
+        free (tokens);
+        tokens = NULL;
+        tokensCount = 0;
+    }
 
     return 0;
 }
-
 
 void Split (char* string, char* delimiters, char*** tokens, int* tokensCount)
 {
