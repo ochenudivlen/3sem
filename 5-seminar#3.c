@@ -27,7 +27,7 @@ int main ()
     fp = open ("file_text", O_RDONLY);
     num = read (fp, str, n * (number_of_string + 1));
 
-    int arr[number_of_string + 1];
+    int arr[number_of_string + 1];  //Номера символов, означающих переход на новую строку
     int count = 0;
 
     for (int i = 0; i < num; i++)
@@ -39,7 +39,7 @@ int main ()
 
     char** strings = (char**)calloc(number_of_string, sizeof (char*));
 
-    for (int i = 0; i < number_of_string; i++)
+    for (int i = 0; i < number_of_string; i++)  //Разбиение на строки
     {
         strings[i] = (char*)calloc(arr[i + 1] - arr[i], sizeof (char));
         int count = 0;
@@ -50,52 +50,112 @@ int main ()
         }
     }
 
-    char*   delimiters   = " ";
-    char**  tokens       = NULL;
-    int     tokensCount  = 0;
+    char*   delimiters  = " ";
+    char**  tokens      = NULL;
+    int     tokensCount = 0;
+    int* time = (int*)calloc(number_of_string, sizeof (int));
+    int cpids[number_of_string];    //Массив ID дочерних процессов
+    int statusCpids[number_of_string];  //Массив статусов, с которыми завершились процессы
 
     for (int i = 0; i < number_of_string; i++)
     {
         Split (strings[i], delimiters, &tokens, &tokensCount);
 
-        tokens = (char**)realloc(tokens, (tokensCount + 1) * sizeof (char*));
-        tokens [tokensCount] = NULL;
+        time[i] = atoi (tokens[tokensCount - 1]);
+        tokens[tokensCount - 1] = NULL;
 
-        struct timespec mt1, mt2;
-        double time = 0;
+        int first_pipe[2] = {0};
 
-        pid_t pid = fork();
-
-        if (pid < 0)
+        if (pipe (first_pipe) < 0)
         {
-            printf ("Can\'t fork child\n");
+            printf ("Can't create pipe\n");
             exit (-1);
         }
-        else if (pid == 0)
-        {
-            sleep (3);
 
+        pid_t pid1 = fork();
+
+        if (pid1 < 0)
+        {
+            printf ("Can't fork child\n");
+            exit (-1);
+        }
+
+        else if (pid1 == 0)
+        {
+            close (first_pipe[0]);
+
+            int cpid = getpid();
+            int size = write (first_pipe[1], &cpid, sizeof (cpid));
+            if (size != sizeof (cpid))
+            {
+                printf ("Can't write all cpid\n");
+                exit (-1);
+            }
+
+            close (first_pipe[1]);
+
+            if (i == 0)
+                sleep (time[i]);
+
+            else
+                sleep (time[i] - time[i - 1]);
+
+//            sleep (7);
             execvp (tokens[0], tokens);
 
+            printf ("exit pid1\n");
             exit (0);
         }
+
         else
         {
-            clock_gettime (CLOCK_REALTIME, &mt1);
+            close (first_pipe[1]);
 
-            wait (NULL);
+            int size = read (first_pipe[0], &cpids[i], sizeof (int));
+            if (size < sizeof (int))
+            {
+                printf ("Can't read cpid\n");
+                exit (-1);
+            }
 
-            clock_gettime (CLOCK_REALTIME, &mt2);
+            close (first_pipe[0]);
 
-            time = (mt2.tv_sec - mt1.tv_sec) + ((double)(mt2.tv_nsec - mt1.tv_nsec)) / 1000000000;
-            printf ("Time: %.9lf\n", time);
+            pid_t pid2 = fork();
 
+            if (pid2 < 0)
+            {
+                printf ("Can't fork child\n");
+                exit (-1);
+            }
+
+            else if (pid2 == 0)
+            {
+                if (i == 0)
+                    sleep (time[i] + 5);
+
+                else
+                    sleep (time[i] - time[i - 1] + 5);
+
+                kill (cpids[i], SIGTERM);
+
+                exit(0);
+            }
+
+            waitpid (cpids[i], &statusCpids[i], 0);
+            free (tokens);
+            tokens = NULL;
+            tokensCount = 0;
         }
-
-        free (tokens);
-        tokens = NULL;
-        tokensCount = 0;
     }
+
+    printf ("\n");
+    for (int i = 0; i < number_of_string; i++)
+        printf ("N: %d, Pid: %d, Status: %d\n", i, cpids[i], statusCpids[i]);
+
+    free (time);
+    for (int i = 0; i < number_of_string; i++)
+        free (strings[i]);
+    free (strings);
 
     return 0;
 }
