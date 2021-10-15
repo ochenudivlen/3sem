@@ -19,15 +19,15 @@ int main ()
     int fp = open ("file_text", O_RDONLY);
     int num = read (fp, str1, n1);
 
-    int number_of_string = atoi (str1);
+    int number_of_strings = atoi (str1);
 
     close (fp);
 
-    char str[n * (number_of_string + 1)];
+    char str[n * (number_of_strings + 1)];
     fp = open ("file_text", O_RDONLY);
-    num = read (fp, str, n * (number_of_string + 1));
+    num = read (fp, str, n * (number_of_strings + 1));
 
-    int arr[number_of_string + 1];  //Номера символов, означающих переход на новую строку
+    int arr[number_of_strings + 1];  //Номера символов, означающих переход на новую строку
     int count = 0;
 
     for (int i = 0; i < num; i++)
@@ -37,9 +37,9 @@ int main ()
             count++;
         }
 
-    char** strings = (char**)calloc(number_of_string, sizeof (char*));
+    char** strings = (char**)calloc(number_of_strings, sizeof (char*));
 
-    for (int i = 0; i < number_of_string; i++)  //Разбиение на строки
+    for (int i = 0; i < number_of_strings; i++)  //Разбиение на строки
     {
         strings[i] = (char*)calloc(arr[i + 1] - arr[i], sizeof (char));
         int count = 0;
@@ -53,11 +53,11 @@ int main ()
     char*   delimiters  = " ";
     char**  tokens      = NULL;
     int     tokensCount = 0;
-    int* time = (int*)calloc(number_of_string, sizeof (int));
-    int cpids[number_of_string];            //Массив ID дочерних процессов
-    int statusCpids[number_of_string];      //Массив статусов, с которыми завершились процессы
+    int* time = (int*)calloc(number_of_strings, sizeof (int));
+    int cpids[number_of_strings];            //Массив ID дочерних процессов
+    int statusCpids[number_of_strings];      //Массив статусов, с которыми завершились процессы
 
-    for (int i = 0; i < number_of_string; i++)  //Создадим массив времён
+    for (int i = 0; i < number_of_strings; i++)  //Создадим массив времён
     {
         char* temp_str;
         strcpy (temp_str, strings[i]);
@@ -72,8 +72,8 @@ int main ()
         tokensCount = 0;
     }
 
-    for (int i = 0; i < (number_of_string - 1); i++)  //Отсортируем команды по времени
-        for (int j = 1; j < (number_of_string - i); j++)
+    for (int i = 0; i < (number_of_strings - 1); i++)  //Отсортируем команды по времени
+        for (int j = 1; j < (number_of_strings - i); j++)
             if (time[j] < time[j - 1])
             {
                 char* temp_str = strings[j];
@@ -85,7 +85,7 @@ int main ()
                 time[j - 1] = temp_time;
             }
 
-    for (int i = 0; i < number_of_string; i++)      //Выполнение команд
+    for (int i = 0; i < number_of_strings; i++)      //Выполнение команд
     {
         Split (strings[i], delimiters, &tokens, &tokensCount);
 
@@ -176,19 +176,20 @@ int main ()
         }
     }
 
-    for (int i = 0; i < number_of_string; i++)  //Вывод статусов, с которыми завершились процессы
+    for (int i = 0; i < number_of_strings; i++)  //Вывод статусов, с которыми завершились процессы
     {
         printf ("N: %d, Pid: %d, Status: %d, ", i, cpids[i], statusCpids[i]);
 
         if (statusCpids[i] == 15)
             printf ("Stopped with kill\n");
+
         else 
-            printf ("Eded on its own or for another reason\n");
+            printf ("Ended on its own or for another reason\n");
     }
 
     free (time);
 
-    for (int i = 0; i < number_of_string; i++)
+    for (int i = 0; i < number_of_strings; i++)
         free (strings[i]);
 
     free (strings);
@@ -215,7 +216,7 @@ void Split (char* string, char* delimiters, char*** tokens, int* tokensCount)
     }
 }
 
-/*Формат записи в файле команд и времём их исполнения объясним на примере:
+/*Пример содержимого считываемого файла
 3
 ls -al 6
 pwd 3
