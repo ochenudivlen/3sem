@@ -54,14 +54,41 @@ int main ()
     char**  tokens      = NULL;
     int     tokensCount = 0;
     int* time = (int*)calloc(number_of_string, sizeof (int));
-    int cpids[number_of_string];    //Массив ID дочерних процессов
-    int statusCpids[number_of_string];  //Массив статусов, с которыми завершились процессы
+    int cpids[number_of_string];            //Массив ID дочерних процессов
+    int statusCpids[number_of_string];      //Массив статусов, с которыми завершились процессы
 
-    for (int i = 0; i < number_of_string; i++)
+    for (int i = 0; i < number_of_string; i++)  //Создадим массив времён
+    {
+        char* temp_str;
+        strcpy (temp_str, strings[i]);
+
+        Split (strings[i], delimiters, &tokens, &tokensCount);
+        time[i] = atoi (tokens[tokensCount - 1]);
+
+        strcpy (strings[i], temp_str);
+
+        free (tokens);
+        tokens = NULL;
+        tokensCount = 0;
+    }
+
+    for (int i = 0; i < (number_of_string - 1); i++)  //Отсортируем команды по времени
+        for (int j = 1; j < (number_of_string - i); j++)
+            if (time[j] < time[j - 1])
+            {
+                char* temp_str = strings[j];
+                strings[j] = strings[j - 1];
+                strings[j - 1] = temp_str;
+
+                int temp_time = time[j];
+                time[j] = time[j - 1];
+                time[j - 1] = temp_time;
+            }
+
+    for (int i = 0; i < number_of_string; i++)      //Выполнение команд
     {
         Split (strings[i], delimiters, &tokens, &tokensCount);
 
-        time[i] = atoi (tokens[tokensCount - 1]);
         tokens[tokensCount - 1] = NULL;
 
         int first_pipe[2] = {0};
@@ -100,7 +127,7 @@ int main ()
             else
                 sleep (time[i] - time[i - 1]);
 
-//            sleep (7);
+//            sleep (4.9);
             execvp (tokens[0], tokens);
 
             printf ("exit pid1\n");
@@ -142,19 +169,28 @@ int main ()
             }
 
             waitpid (cpids[i], &statusCpids[i], 0);
+
             free (tokens);
             tokens = NULL;
             tokensCount = 0;
         }
     }
 
-    printf ("\n");
-    for (int i = 0; i < number_of_string; i++)
-        printf ("N: %d, Pid: %d, Status: %d\n", i, cpids[i], statusCpids[i]);
+    for (int i = 0; i < number_of_string; i++)  //Вывод статусов, с которыми завершились процессы
+    {
+        printf ("N: %d, Pid: %d, Status: %d, ", i, cpids[i], statusCpids[i]);
+
+        if (statusCpids[i] == 15)
+            printf ("Stopped with kill\n");
+        else 
+            printf ("Eded on its own or for another reason\n");
+    }
 
     free (time);
+
     for (int i = 0; i < number_of_string; i++)
         free (strings[i]);
+
     free (strings);
 
     return 0;
@@ -178,3 +214,10 @@ void Split (char* string, char* delimiters, char*** tokens, int* tokensCount)
         str = strtok (NULL, delimiters);
     }
 }
+
+/*Формат записи в файле команд и времём их исполнения объясним на примере:
+3
+ls -al 6
+pwd 3
+echo Hello, world! 9
+*/
