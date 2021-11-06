@@ -52,7 +52,7 @@ int main()
 
     for (i = 1; i <= 5; i++)
     {
-        OutputMsg.mtype  =  getpid();
+        OutputMsg.mtype  =  1;
         OutputMsg.info.a = 10;
         OutputMsg.info.b =  i;
         OutputMsg.info.pid = getpid();

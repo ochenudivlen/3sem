@@ -9,12 +9,15 @@
 #include <unistd.h>
 
 const int N = 2;
+int semid;
 
 void *mythread (void *arg);
+void makeop (int semid, int n);
+void KillSem (char* file);
 
 int main()
 {
-    int msqid, semid;
+    int msqid;
 
     char pathname[] = "09-1a.c";
     char pathnamesem[] = "08-1a.c";
@@ -22,8 +25,6 @@ int main()
     key_t key, keysem;
 
     int i,len;
-
-    struct sembuf mybuf;
 
     struct mymsgbuf1
     {
@@ -33,6 +34,8 @@ int main()
             int a, b, pid;
         } info;
     } InputMsg;
+
+    KillSem (pathnamesem);
 
     if ((key = ftok (pathname,0)) < 0)
     {
@@ -52,21 +55,13 @@ int main()
         exit (-1);
     }
 
-    if ((semid = semget (key, 1, 0666 | IPC_CREAT)) < 0)
+    if ((semid = semget (keysem, 1, 0666 | IPC_CREAT)) < 0)
     {
         printf ("Can\'t get semid\n");
         exit (-1);
     }
 
-    mybuf.sem_op  = N;
-    mybuf.sem_flg = 0;
-    mybuf.sem_num = 0;
-
-    if (semop (semid, &mybuf, 1) < 0)
-    {
-        printf ("Can\'t wait for condition\n");
-        exit (-1);
-    }
+    makeop (semid, N);
 
     int maxlen;
     pthread_t thid, mythid;
@@ -76,13 +71,15 @@ int main()
     {
         maxlen = sizeof (InputMsg.info);
 
-        if (len = msgrcv (msqid, (struct msgbuf1 *) &InputMsg, maxlen, 0, 0) < 0)
+        if (len = msgrcv (msqid, (struct msgbuf1 *) &InputMsg, maxlen, 1, 0) < 0)
         {
             printf ("Can\'t receive message from queue\n");
             exit (-1);
         }
 
         struct mymsgbuf1 arg = InputMsg;
+
+    printf ("zapusk\n");
 
         result = pthread_create (&thid, (pthread_attr_t *)NULL, mythread, &arg);
     }
@@ -102,18 +99,10 @@ void *mythread (void *arg)
     };
 
     struct mymsgbuf1 dummy = *((struct mymsgbuf1*)arg);
-    struct sembuf mybuf;
-    int semid, len, msqid;
 
-    mybuf.sem_op  = -1;
-    mybuf.sem_flg =  0;
-    mybuf.sem_num =  0;
+    int len, msqid;
 
-    if (semop (semid, &mybuf, 1) < 0)
-    {
-        printf ("Can\'t wait for condition\n");
-        exit (-1);
-    }
+    makeop (semid, -1);
 
     struct mymsgbuf2
     {
@@ -129,7 +118,9 @@ void *mythread (void *arg)
     OutputMsg.info.result = (dummy.info.a) * (dummy.info.b);
     len = sizeof (OutputMsg.info);
 
-    sleep (5);
+    printf ("result: %d\n", OutputMsg.info.result);
+
+//    sleep (5);
 
     if (msgsnd (msqid, (struct msgbuf2 *) &OutputMsg, len, 0) < 0)
     {
@@ -138,7 +129,14 @@ void *mythread (void *arg)
         exit (-1);
     }
 
-    mybuf.sem_op  = 1;
+    makeop (semid, 1);
+}
+
+void makeop (int semid, int n)
+{
+    struct sembuf mybuf;
+
+    mybuf.sem_op  = n;
     mybuf.sem_flg = 0;
     mybuf.sem_num = 0;
 
@@ -147,4 +145,20 @@ void *mythread (void *arg)
         printf ("Can\'t wait for condition\n");
         exit (-1);
     }
+}
+
+void KillSem (char* file)
+{
+    int keysem, semid;
+
+    if ((keysem = ftok (file, 0)) < 0)
+    {
+        printf ("Can\'t generate key\n");
+        exit (-1);
+    }
+
+    semid = semget (keysem, 1, 0);
+
+    if (semid >= 0)
+        semctl (semid, 0, IPC_RMID, 0);
 }
