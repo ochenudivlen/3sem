@@ -8,8 +8,9 @@
 #include <pthread.h>
 #include <unistd.h>
 
-const int N = 1;
+const int N = 3;
 int semid;
+int msqid;
 
 void *mythread (void *arg);
 void makeop (int semid, int n);
@@ -17,8 +18,6 @@ void KillSem (char* file);
 
 int main()
 {
-    int msqid;
-
     char pathname[] = "09-1a.c";
     char pathnamesem[] = "08-1a.c";
 
@@ -65,23 +64,23 @@ int main()
 
     int maxlen;
     pthread_t thid, mythid;
-    int result;
+    int result, counter = 0;
+    struct mymsgbuf1* arg = (struct mymsgbuf1*)calloc(160, sizeof (struct mymsgbuf1));
 
     while (1)
     {
         maxlen = sizeof (InputMsg.info);
 
-        if (len = msgrcv (msqid, (struct msgbuf1 *) &InputMsg, maxlen, 1, 0) < 0)
+        if (len = msgrcv (msqid, (struct msgbuf1 *) &arg[counter], maxlen, 1, 0) < 0)
         {
             printf ("Can\'t receive message from queue\n");
             exit (-1);
         }
 
-        struct mymsgbuf1 arg = InputMsg;
+        result = pthread_create (&thid, (pthread_attr_t *)NULL, mythread, &arg[counter]);
 
-        printf ("input.info: %d\n", InputMsg.info.b);
-
-        result = pthread_create (&thid, (pthread_attr_t *)NULL, mythread, &arg);
+        if (counter < 149)        
+            counter++;
     }
 
     return 0;
@@ -100,7 +99,9 @@ void *mythread (void *arg)
 
     struct mymsgbuf1 dummy = *((struct mymsgbuf1*)arg);
 
-    int len, maxlen, msqid;
+    int len;
+
+    makeop (semid, -1);
 
     struct mymsgbuf2
     {
@@ -112,13 +113,9 @@ void *mythread (void *arg)
         } info;
     } OutputMsg;
 
-    makeop (semid, -1);
-
     OutputMsg.mtype = dummy.info.pid;
     OutputMsg.info.result = (dummy.info.a) * (dummy.info.b);
     len = sizeof (OutputMsg.info);
-
-    printf ("result: %d\n", OutputMsg.info.result);
 
     if (msgsnd (msqid, (struct msgbuf2 *) &OutputMsg, len, 0) < 0)
     {

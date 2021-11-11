@@ -49,14 +49,15 @@ int main()
     }
 
     int maxlen = sizeof (InputMsg.info);
+    OutputMsg.mtype  =  1;
+    OutputMsg.info.a = 10;
+    OutputMsg.info.pid = getpid();
+    len = sizeof (OutputMsg.info);
 
-    for (i = 1; i <= 50; i++)
+
+    for (i = 1; i < 51; i++)
     {
-        OutputMsg.mtype  =  1;
-        OutputMsg.info.a = 10;
-        OutputMsg.info.b =  i;
-        OutputMsg.info.pid = getpid();
-        len = sizeof (OutputMsg.info);
+        OutputMsg.info.b = i;
 
         if (msgsnd (msqid, (struct mymsgbuf1 *) &OutputMsg, len, 0) < 0)
         {
@@ -66,7 +67,7 @@ int main()
         }
     }
 
-    for (i = 1; i <= 50; i++)
+    while (1)
     {
         if (len = msgrcv (msqid, (struct mymsgbuf2 *) &InputMsg, maxlen, getpid(), 0) < 0)
         {
