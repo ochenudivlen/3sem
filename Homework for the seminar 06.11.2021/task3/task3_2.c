@@ -48,9 +48,9 @@ int main()
         exit (-1);
     }
 
-    int maxlen;
+    int maxlen = sizeof (InputMsg.info);
 
-    for (i = 1; i <= 5; i++)
+    for (i = 1; i <= 50; i++)
     {
         OutputMsg.mtype  =  1;
         OutputMsg.info.a = 10;
@@ -64,11 +64,10 @@ int main()
             msgctl (msqid, IPC_RMID, (struct msqid_ds *) NULL);
             exit (-1);
         }
+    }
 
-        sleep (3);
-
-        maxlen = sizeof (InputMsg.info);
-
+    for (i = 1; i <= 50; i++)
+    {
         if (len = msgrcv (msqid, (struct mymsgbuf2 *) &InputMsg, maxlen, getpid(), 0) < 0)
         {
             printf ("Can\'t receive message from queue\n");
