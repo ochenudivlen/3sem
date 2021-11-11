@@ -8,7 +8,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-const int N = 2;
+const int N = 1;
 int semid;
 
 void *mythread (void *arg);
@@ -79,7 +79,7 @@ int main()
 
         struct mymsgbuf1 arg = InputMsg;
 
-    printf ("zapusk\n");
+        printf ("input.info: %d\n", InputMsg.info.b);
 
         result = pthread_create (&thid, (pthread_attr_t *)NULL, mythread, &arg);
     }
@@ -100,9 +100,7 @@ void *mythread (void *arg)
 
     struct mymsgbuf1 dummy = *((struct mymsgbuf1*)arg);
 
-    int len, msqid;
-
-    makeop (semid, -1);
+    int len, maxlen, msqid;
 
     struct mymsgbuf2
     {
@@ -114,13 +112,13 @@ void *mythread (void *arg)
         } info;
     } OutputMsg;
 
+    makeop (semid, -1);
+
     OutputMsg.mtype = dummy.info.pid;
     OutputMsg.info.result = (dummy.info.a) * (dummy.info.b);
     len = sizeof (OutputMsg.info);
 
     printf ("result: %d\n", OutputMsg.info.result);
-
-//    sleep (5);
 
     if (msgsnd (msqid, (struct msgbuf2 *) &OutputMsg, len, 0) < 0)
     {
