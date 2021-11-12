@@ -65,7 +65,7 @@ int main()
     int maxlen;
     pthread_t thid, mythid;
     int result, counter = 0;
-    struct mymsgbuf1* arg = (struct mymsgbuf1*)calloc(160, sizeof (struct mymsgbuf1));
+    struct mymsgbuf1* arg = (struct mymsgbuf1*)calloc(300, sizeof (struct mymsgbuf1));
 
     while (1)
     {
@@ -78,9 +78,8 @@ int main()
         }
 
         result = pthread_create (&thid, (pthread_attr_t *)NULL, mythread, &arg[counter]);
-
-        if (counter < 149)        
-            counter++;
+     
+        counter++;
     }
 
     return 0;
