@@ -65,7 +65,7 @@ int main ()
         strcpy (temp_str, strings[i]);                                          //копируем в неё строку
 
         Split (strings[i], delimiters, &tokens, &tokensCount);                  //Делим строку на слова
-        time[i] = atoi (tokens[tokensCount - 1]);   //Преобразуем строку в число
+        time[i] = atoi (tokens[tokensCount - 1]);                               //Преобразуем строку в число
 
         strcpy (strings[i], temp_str);                                          //Возвращаем в элемент массива его содержимое (сплит разрушает строчку, поэтому пришлось создавать временное хранилище
 
