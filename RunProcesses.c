@@ -10,6 +10,13 @@
 
 //Эта программа запускает все программы из данного файла
 
+/*Пример содержимого считываемого файла
+3
+ls -al 6
+pwd 3
+echo Hello, world! 9
+*/
+
 int const n  = 128;
 
 void Split (char* string, char* delimiters, char*** tokens, int* tokensCount);
@@ -78,108 +85,79 @@ int main ()
 
     fclose (fp);
 
-    for (int i = 0; i < number_of_strings; i++)                                 //Выполнение команд
+    for (int i = 0; i < number_of_strings; i++)
     {
-        Split (strings[i], delimiters, &tokens, &tokensCount);                  //Опять делим строки на слова
+        Split (strings[i], delimiters, &tokens, &tokensCount);
 
-        tokens[tokensCount - 1] = NULL;                                         //Последнему слову в каждой строчке присваиваем нулевой указатель
+        tokens[tokensCount - 1] = NULL;
 
-        int first_pipe[2] = {0};                                                //Массив для первого pipe
+        pid_t pid1 = fork();
 
-        if (pipe (first_pipe) < 0)                                              //Создаем pipe
-        {
-            printf ("Can't create pipe\n");
-            exit (-1);
-        }
-
-        pid_t pid1 = fork();                                                    //Создаем дочерний процесс
-
-        if (pid1 < 0)                                                           //Если не получилось - сообщаем об этом
+        if (pid1 < 0)
         {
             printf ("Can't fork child\n");
             exit (-1);
         }
 
-        else if (pid1 == 0)                                                     //Если это дочерний процесс
+        else if (pid1 == 0)
         {
-            close (first_pipe[0]);                                              //Закрываем входной поток
-
-            int cpid = getpid();                                                //Идентификатор дочернего процесса
-            int size = write (first_pipe[1], &cpid, sizeof (cpid));             //Записываем в pipe идентификатор дочернего процесса
-            if (size != sizeof (cpid))                                          //Если не удалось - сообщаем об этом
-            {
-                printf ("Can't write all cpid\n");
-                exit (-1);
-            }
-
-            close (first_pipe[1]);                                              //Закрываем выходной поток
-
-            if (i == 0)                                                         //Если это первый проход цикла - просто ставим задержку времени
+            if (i == 0)
                 sleep (time[i]);
 
-            else                                                                //Если не первый проход - ставим задержку времени, равную разности времён
+            else
                 sleep (time[i] - time[i - 1]);
 
-            execvp (tokens[0], tokens);                                         //Запускаю программу, названия и параметры которой прочитали из файла
+            execvp (tokens[0], tokens);
 
-            printf ("exit pid1\n");                                             //На случай, если что-то пошло не по плану
+            printf ("exit pid1\n");
             exit (0);
         }
 
-        else                                                                    //Если это родительский процесс
+        else
         {
-            close (first_pipe[1]);                                              //Закрываем выходной поток
+            cpids[i] = pid1;
 
-            int size = read (first_pipe[0], &cpids[i], sizeof (int));           //Читаем из pipe'а идентификатор дочернего процесса
-            if (size < sizeof (int))                                            //Если не получилоь - сообщаем об этом
-            {
-                printf ("Can't read cpid\n");
-                exit (-1);
-            }
+            pid_t pid2 = fork();
 
-            close (first_pipe[0]);                                              //Закрываем входной поток
-
-            pid_t pid2 = fork();                                                //Создаем ещё один дочерний процесс, который будет отслеживать, уложилась ли в timeout считанная из файла программа
-
-            if (pid2 < 0)                                                       //Если не получилось создать - сообщаем об этом
+            if (pid2 < 0)
             {
                 printf ("Can't fork child\n");
                 exit (-1);
             }
 
-            else if (pid2 == 0)                                                 //Если это дочерний процесс
+            else if (pid2 == 0)
             {
-                if (i == 0)                                                     //Если первый проход цикла - ставим обычную задержку времени плюс 5 секунд, отведенные на timeout
+                if (i == 0)
                     sleep (time[i] + 5);
 
                 else
-                    sleep (time[i] - time[i - 1] + 5);                          //Если проход не первый, ставим задержку на разность времен плюс timeout
+                    sleep (time[i] - time[i - 1] + 5);
 
-                kill (cpids[i], SIGTERM);                                       //Убиваем процесс в не зависимости от того, завершился он или нет, плюс запомниаем статусы, с которыми завершились процессы, выполнявшие программмы (здесь использовали идентификатор предыдущего дочернего процесса, дабы мы смогли убить его)
+                kill (cpids[i], SIGTERM);
 
-                exit(0);                                                        //Выходим из этого процесса
+                exit(0);
             }
 
-            waitpid (cpids[i], &statusCpids[i], 0);                             //Находим статусы, с которыми заврешились процессы, выполнявшие программы из файла
+            waitpid (cpids[i], &statusCpids[i], 0);
 
-            free (tokens);                                                      //Очищаем память и обнуляем переменные, которыми будем пользоваться при следующем проходе
+            free (tokens);
             tokens = NULL;
             tokensCount = 0;
         }
     }
 
-    for (int i = 0; i < number_of_strings; i++)                                 //Вывод статусов, с которыми завершились процессы
+    for (int i = 0; i < number_of_strings; i++)
     {
         printf ("N: %d, Pid: %d, Status: %d, ", i, cpids[i], statusCpids[i]);
 
-        if (statusCpids[i] == 15)                                               //Было замечено, что если статус 15, то это из-за kill'a
+        if (statusCpids[i] == 15)
             printf ("Stopped with kill\n");
 
-        else                                                                    //Иначе причина в чем другом (вероятно, процесс завершился сам)
+        else
             printf ("Ended on its own or for another reason\n");
     }
 
-    free (time);                                                                //Очищаем память
+    free (time);
 
     for (int i = 0; i < number_of_strings; i++)
         free (strings[i]);
@@ -189,28 +167,21 @@ int main ()
     return 0;
 }
 
-void Split (char* string, char* delimiters, char*** tokens, int* tokensCount)   //Функция, делящая строчку на слова
+void Split (char* string, char* delimiters, char*** tokens, int* tokensCount)
 {
-    char *str = strtok (string, delimiters);                                    //Пробуем достать первое слово
+    char *str = strtok (string, delimiters);
 
-    if (str == NULL)                                                            //Если не получилось - сообщаем о том, что строку разбить невозможно
+    if (str == NULL)
     {
         printf ("Can't split string\n");
         return;
     }
 
-    while (str != NULL)                                                         //Последовательно вызываем strtok для деления строки на слова
+    while (str != NULL)
     {
         (*tokensCount)++;
-        *tokens = (char**)realloc(*tokens, *tokensCount * sizeof (char*));      //Добавляем в массив элемент для нового слова
+        *tokens = (char**)realloc(*tokens, *tokensCount * sizeof (char*));
         (*tokens) [*tokensCount - 1] = str;
         str = strtok (NULL, delimiters);
     }
 }
-
-/*Пример содержимого считываемого файла
-3
-ls -al 6
-pwd 3
-echo Hello, world! 9
-*/
