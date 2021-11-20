@@ -6,24 +6,27 @@
 #include <string.h>
 #include <stdlib.h>
 
+//Эта программа проводит поиск файла с определенным именем, ДЗ для семинара 20.11.2021
+
 void FindFile (char* fileName, char* currentDir, int depth, int* foundFilesCount, char*** results);
 
 int main()
 {
     char fileName[] = "Files.c";
     char currentDir[] = "./";
-    int depth = 2;
+    int depth = 5;
     int foundFilesCount = 0;
     char **results;
 
     FindFile (fileName, currentDir, depth, &foundFilesCount, &results);
 
-//    printf ("%d\n", foundFilesCount);
+    for (int i = 0; i < foundFilesCount; i++)
+    {
+        printf ("%s\n", results[i]);
+        free (results[i]);
+    }
 
-//    for (int i = 0; i < foundFilesCount; i++)
-//        printf ("%s\n", results[i]);
-
-    printf ("%s\n", results[foundFilesCount - 1]);
+    free (results);
 
     return 0;
 }
@@ -42,34 +45,34 @@ void FindFile (char* fileName, char* currentDir, int depth, int* foundFilesCount
 
     struct stat buf;
     
-    while (ep = readdir (dp))
+    while ((ep = readdir (dp)) != NULL)
     {
-        stat ((ep -> d_name), &buf);        //Проигнорировать файлы "." и ".."
+        stat ((ep -> d_name), &buf);
 
         if (strcmp (ep -> d_name, ".") != 0 && strcmp (ep -> d_name, "..") != 0)
         {
+            length = strlen (currentDir) + strlen ("/") + strlen(ep -> d_name);
+            tempCurrentDir = (char*)calloc(length + 1, sizeof (char));
+            strcat (tempCurrentDir, currentDir);
+            strcat (tempCurrentDir, "/");
+            strcat (tempCurrentDir, ep -> d_name);
 
-            if (S_ISDIR (buf.st_mode))
+            if (ep -> d_type == DT_DIR)
             {
-                length = strlen (currentDir) + strlen ("/") + strlen(ep -> d_name);
-                tempCurrentDir = (char*)malloc(length + 1);
-                strcat (tempCurrentDir, currentDir);
-                strcat (tempCurrentDir, "/");
-                strcat (tempCurrentDir, ep -> d_name);
-
                 FindFile (fileName, tempCurrentDir, depth - 1, foundFilesCount, results);
+                free (tempCurrentDir);
             }
 
-            if (S_ISREG (buf.st_mode))
-                if (strcmp (ep -> d_name, fileName) == 0)
-                {
-                    (*foundFilesCount)++;
-                    printf ("%d\n", (*foundFilesCount));
-                    (*results) = (char**)realloc((*results), (*foundFilesCount) * sizeof (char*));
-                    length = strlen (currentDir);
-                    (*results)[*foundFilesCount - 1] = (char*)malloc(length + 1);
-                    strcpy ((*results)[(*foundFilesCount) - 1], currentDir);
-                }
+            else
+
+            if (strcmp (ep -> d_name, fileName) == 0)
+            {
+                (*foundFilesCount)++;
+                (*results) = (char**)realloc((*results), (*foundFilesCount) * sizeof (char*));
+                length = strlen (tempCurrentDir);
+                (*results)[*foundFilesCount - 1] = (char*)malloc(length + 1);
+                strcpy ((*results)[(*foundFilesCount) - 1], tempCurrentDir);
+            }
         }
     }
 
