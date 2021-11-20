@@ -8,73 +8,62 @@
 #include <signal.h>
 #include <time.h>
 
-//Данная программа запускает все программы из данного файла
+//Эта программа запускает все программы из данного файла
 
-int const n  = 100;                                                             //Примем 100 за максимальное количество символов в строке
-int const n1 = 10;                                                              //Предполагается, что в первой строке находится число с не более чем десятью знаками
+int const n  = 128;
 
-void Split (char* string, char* delimiters, char*** tokens, int* tokensCount);  //Данная функция делит строки на слова
+void Split (char* string, char* delimiters, char*** tokens, int* tokensCount);
 
 int main ()
 {
-    char str1[n1];                                                              //Строчка, в которую мы прочитаем первую строку из файла
-    int fp = open ("file_text", O_RDONLY);
-    int num = read (fp, str1, n1);                                              //Читаем строку размером n1 и запоминаем, сколько символов прочитали
+    FILE *fp;
+    char str[n];
 
-    int number_of_strings = atoi (str1);                                        //В первой строке записано количество запускаемых программ
+    fp = fopen ("file_text", "r");
 
-    close (fp);
+    fgets (str, n, fp);
+    int number_of_strings = atoi (str);
 
-    char str[n * (number_of_strings + 1)];                                      //Создадим массив, куда прочитаем весь файл
-    fp = open ("file_text", O_RDONLY);                                          //Открываем файл заного, чтобы прочитать его сначала
-    num = read (fp, str, n * (number_of_strings + 1));                          //Читаем
+    char** strings = (char**)calloc(number_of_strings, sizeof (char*));
+    for (int i = 0; i < number_of_strings; i++)
+        strings[i] = (char*)calloc(n, sizeof (char));
 
-    int arr[number_of_strings + 1];                                             //Номера символов, означающих переход на новую строку
-    int count = 0;                                                              //Считаем количество символов перехода на новую строку
+    int count = 0;
 
-    for (int i = 0; i < num; i++)
-        if (str[i] == '\n')
-        {
-            arr[count] = i;
-            count++;
-        }
-
-    char** strings = (char**)calloc(number_of_strings, sizeof (char*));         //Выделяем память для строк, в которых содержаться данные о запускаемых программах
-
-    for (int i = 0; i < number_of_strings; i++)                                 //Разбиение на строки
+    while (!feof (fp))
     {
-        strings[i] = (char*)calloc(arr[i + 1] - arr[i], sizeof (char));         //Длина одной строки
-        int count = 0;
-        for (int j = arr[i] + 1; j < arr[i + 1]; j++)                           //Посимвольно копируем строчки
-        {
-            strings[i][count] = str[j];
-            count++;
-        }
+        if (fgets (str, n, fp))
+            strcpy (strings[count], str);
+
+        count++;
     }
 
-    char*   delimiters  = " ";                                                  //Раазделитель
-    char**  tokens      = NULL;                                                 //Двойной массив, содержащий строки, поделённые на слова
-    int     tokensCount = 0;                                                    //Количество слов
-    int* time = (int*)calloc(number_of_strings, sizeof (int));                  //Выделение памяти для массива времен
-    int cpids[number_of_strings];                                               //Массив ID дочерних процессов
-    int statusCpids[number_of_strings];                                         //Массив статусов, с которыми завершились процессы
+    char*   delimiters  = " ";
+    char**  tokens      = NULL;
+    int     tokensCount = 0;
+    int* time           = (int*)calloc(number_of_strings, sizeof (int));
+    int cpids[number_of_strings];
+    int statusCpids[number_of_strings];
 
-    for (int i = 0; i < number_of_strings; i++)                                 //Создадим массив времён
+    for (int i = 0; i < number_of_strings; i++)
     {
-        char* temp_str;                                                         //Временная переменная, где хранится строка
-        strcpy (temp_str, strings[i]);                                          //копируем в неё строку
+        char* temp_str;
+        strcpy (temp_str, strings[i]);
 
-        Split (strings[i], delimiters, &tokens, &tokensCount);                  //Делим строку на слова
-        time[i] = atoi (tokens[tokensCount - 1]);                               //Преобразуем строку в число
+        Split (strings[i], delimiters, &tokens, &tokensCount);
+        time[i] = atoi (tokens[tokensCount - 1]);
 
-        strcpy (strings[i], temp_str);                                          //Возвращаем в элемент массива его содержимое (сплит разрушает строчку, поэтому пришлось создавать временное хранилище
+        strcpy (strings[i], temp_str);
 
-        free (tokens);                                                          //Освобождаем память
+        free (tokens);
         tokens = NULL;
         tokensCount = 0;
     }
 
-    for (int i = 0; i < (number_of_strings - 1); i++)                           //Отсортируем команды по времени
+    for (int i = 0; i < number_of_strings; i++)
+        printf ("%s", strings[i]);
+
+    for (int i = 0; i < (number_of_strings - 1); i++)
         for (int j = 1; j < (number_of_strings - i); j++)
             if (time[j] < time[j - 1])
             {
@@ -86,6 +75,8 @@ int main ()
                 time[j] = time[j - 1];
                 time[j - 1] = temp_time;
             }
+
+    fclose (fp);
 
     for (int i = 0; i < number_of_strings; i++)                                 //Выполнение команд
     {
