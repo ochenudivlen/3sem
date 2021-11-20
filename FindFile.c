@@ -5,16 +5,17 @@
 #include <dirent.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdlib.h>
 
 //Эта программа проводит поиск файла с определенным именем, ДЗ для семинара 20.11.2021
 
 void FindFile (char* fileName, char* currentDir, int depth, int* foundFilesCount, char*** results);
 
-int main()
+int main (int argc, char **argv)
 {
-    char fileName[] = "Files.c";
-    char currentDir[] = "./";
-    int depth = 5;
+    char* currentDir = argv[1];
+    int depth = atoi (argv[2]); 
+    char* fileName = argv[3];
     int foundFilesCount = 0;
     char **results;
 
@@ -25,6 +26,9 @@ int main()
         printf ("%s\n", results[i]);
         free (results[i]);
     }
+
+    if (foundFilesCount == 0)
+        printf ("File not found\n");
 
     free (results);
 
@@ -68,7 +72,12 @@ void FindFile (char* fileName, char* currentDir, int depth, int* foundFilesCount
             if (strcmp (ep -> d_name, fileName) == 0)
             {
                 (*foundFilesCount)++;
-                (*results) = (char**)realloc((*results), (*foundFilesCount) * sizeof (char*));
+
+                if ((*foundFilesCount) == 1)
+                    (*results) = (char**)calloc((*foundFilesCount), sizeof (char*));
+                else
+                    (*results) = (char**)realloc((*results), (*foundFilesCount) * sizeof (char*));
+
                 length = strlen (tempCurrentDir);
                 (*results)[*foundFilesCount - 1] = (char*)malloc(length + 1);
                 strcpy ((*results)[(*foundFilesCount) - 1], tempCurrentDir);
